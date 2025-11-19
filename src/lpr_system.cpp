@@ -12,10 +12,10 @@ LPRSystem::LPRSystem(const std::string& config_path)
     , running_(false)
     , initialized_(false)
     , max_queue_size_(5)
+    , cooldown_seconds_(0.5)
     , frame_counter_(0)
     , ai_frame_counter_(0)
     , detection_counter_(0)
-    , cooldown_seconds_(0.5)
 {
     // Cargar configuración
     config_.loadFromFile(config_path);
@@ -227,12 +227,6 @@ void LPRSystem::processingThread() {
                     saveDetection(result);
                 }
             }
-            
-            // Calcular latencia
-            auto end_time = std::chrono::steady_clock::now();
-            auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
-                end_time - start_time
-            ).count();
             
             // Actualizar estadísticas
             updateStats();

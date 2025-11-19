@@ -14,7 +14,7 @@ using namespace jetson_lpr;
 // Variable global para manejar señales
 static std::unique_ptr<LPRSystem> g_lpr_system = nullptr;
 
-void signalHandler(int signal) {
+void signalHandler(int /*signal*/) {
     std::cout << "\n🛑 Señal recibida, deteniendo sistema..." << std::endl;
     if (g_lpr_system) {
         g_lpr_system->stop();

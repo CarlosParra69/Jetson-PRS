@@ -37,7 +37,8 @@ bool DatabaseManager::connect(const std::string& host,
     mysql_options(connection_, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
     
     // Conectar a la base de datos
-    my_bool reconnect = 1;
+    // Nota: my_bool fue deprecado en MySQL 8.0+, usar bool directamente
+    bool reconnect = true;
     mysql_options(connection_, MYSQL_OPT_RECONNECT, &reconnect);
     
     MYSQL* result = mysql_real_connect(

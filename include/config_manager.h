@@ -51,44 +51,53 @@ public:
      */
     bool has(const std::string& key) const;
     
-    /**
-     * Obtener configuración de cámara
-     */
+    // Estructuras de configuración
     struct CameraConfig {
         std::string ip;
         std::string user;
         std::string password;
         std::string rtsp_url;
-    } getCameraConfig() const;
+    };
     
-    /**
-     * Obtener configuración de Jetson/Red
-     */
     struct JetsonConfig {
         std::string ip;
         std::string interface;
-    } getJetsonConfig() const;
+    };
     
-    /**
-     * Obtener configuración de procesamiento
-     */
     struct ProcessingConfig {
         double confidence_threshold;
         double plate_confidence_min;
         double detection_cooldown_sec;
         bool ocr_cache_enabled;
-    } getProcessingConfig() const;
+    };
     
-    /**
-     * Obtener configuración de base de datos
-     */
     struct DatabaseConfig {
         std::string host;
         int port;
         std::string database;
         std::string user;
         std::string password;
-    } getDatabaseConfig() const;
+    };
+    
+    /**
+     * Obtener configuración de cámara
+     */
+    CameraConfig getCameraConfig() const;
+    
+    /**
+     * Obtener configuración de Jetson/Red
+     */
+    JetsonConfig getJetsonConfig() const;
+    
+    /**
+     * Obtener configuración de procesamiento
+     */
+    ProcessingConfig getProcessingConfig() const;
+    
+    /**
+     * Obtener configuración de base de datos
+     */
+    DatabaseConfig getDatabaseConfig() const;
 
 private:
     std::unique_ptr<JsonHolder> json_data_;

@@ -84,7 +84,7 @@ public:
     bool isRunning() const { return running_; }
     
     /**
-     * Obtener estadísticas del sistema
+     * Estructura de estadísticas del sistema
      */
     struct Stats {
         uint64_t total_frames;          // Frames procesados totales
@@ -93,7 +93,12 @@ public:
         double capture_fps;             // FPS de captura
         double ai_fps;                  // FPS de procesamiento IA
         double average_latency_ms;      // Latencia promedio (ms)
-    } getStats() const;
+    };
+    
+    /**
+     * Obtener estadísticas del sistema
+     */
+    Stats getStats() const;
 
 private:
     ConfigManager config_;
