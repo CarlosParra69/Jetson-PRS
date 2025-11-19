@@ -39,10 +39,66 @@ sudo apt install -y \
 # OpenCV
 echo ""
 echo "📦 Instalando OpenCV..."
-sudo apt install -y \
-    libopencv-dev \
-    libopencv-contrib-dev \
-    python3-opencv
+
+# Detectar si es Jetson
+IS_JETSON=false
+if [ -f /etc/nv_tegra_release ] || [ -n "$(uname -a | grep -i jetson)" ] || [ -n "$(uname -a | grep -i tegra)" ]; then
+    IS_JETSON=true
+    echo "🔍 Jetson detectado - usando método de instalación especial"
+fi
+
+# Intentar corregir dependencias rotas primero
+echo "🔄 Corrigiendo dependencias rotas..."
+sudo apt-get install -f -y || true
+
+# Método 1: Intentar instalar OpenCV completo (incluyendo contrib)
+echo "📦 Intentando instalar OpenCV completo..."
+if sudo apt install -y libopencv-dev libopencv-contrib-dev python3-opencv 2>&1 | grep -q "unmet dependencies\|held broken packages"; then
+    echo "⚠️  Dependencias rotas detectadas, intentando método alternativo..."
+    
+    # Método 2: Instalar solo paquetes base primero
+    echo "📦 Instalando paquetes base de OpenCV..."
+    sudo apt install -y libopencv-dev python3-opencv || true
+    
+    # Método 3: Intentar instalar versiones específicas que coincidan
+    echo "📦 Intentando instalar versiones compatibles..."
+    OPENCV_BASE_VERSION=$(apt-cache policy libopencv-dev | grep "Installed\|Candidate" | head -1 | awk '{print $2}' | cut -d: -f2 || echo "")
+    
+    if [ -n "$OPENCV_BASE_VERSION" ]; then
+        echo "🔍 Versión base encontrada: $OPENCV_BASE_VERSION"
+        # Intentar instalar contrib con la misma versión
+        sudo apt install -y \
+            libopencv-contrib-dev=${OPENCV_BASE_VERSION} \
+            libopencv-calib3d-dev=${OPENCV_BASE_VERSION} \
+            libopencv-core-dev=${OPENCV_BASE_VERSION} \
+            libopencv-dnn-dev=${OPENCV_BASE_VERSION} \
+            libopencv-features2d-dev=${OPENCV_BASE_VERSION} \
+            libopencv-flann-dev=${OPENCV_BASE_VERSION} \
+            libopencv-highgui-dev=${OPENCV_BASE_VERSION} \
+            libopencv-imgcodecs-dev=${OPENCV_BASE_VERSION} \
+            libopencv-imgproc-dev=${OPENCV_BASE_VERSION} \
+            libopencv-ml-dev=${OPENCV_BASE_VERSION} \
+            libopencv-objdetect-dev=${OPENCV_BASE_VERSION} \
+            libopencv-photo-dev=${OPENCV_BASE_VERSION} \
+            libopencv-stitching-dev=${OPENCV_BASE_VERSION} \
+            libopencv-video-dev=${OPENCV_BASE_VERSION} \
+            libopencv-videoio-dev=${OPENCV_BASE_VERSION} || {
+            echo "⚠️  No se pudo instalar contrib, continuando con versión base..."
+        }
+    else
+        echo "⚠️  No se pudo determinar versión, instalando solo paquetes base..."
+    fi
+    
+    # Método 4: Si es Jetson, verificar si OpenCV ya está instalado por JetPack
+    if [ "$IS_JETSON" = true ]; then
+        echo "🔍 Verificando instalación de OpenCV en Jetson..."
+        if pkg-config --exists opencv4 || pkg-config --exists opencv; then
+            echo "✅ OpenCV ya está disponible en el sistema (probablemente instalado por JetPack)"
+        fi
+    fi
+else
+    echo "✅ OpenCV completo instalado correctamente"
+fi
 
 # Verificar versión OpenCV
 OPENCV_VERSION=$(pkg-config --modversion opencv4 2>/dev/null || pkg-config --modversion opencv 2>/dev/null || echo "desconocida")

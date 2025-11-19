@@ -215,10 +215,68 @@ mysql -u lpr_user -p parqueadero_jetson -e "SELECT * FROM lpr_detections ORDER B
 
 ## Solución de Problemas
 
+### Error: Dependencias rotas de OpenCV (unmet dependencies / held broken packages)
+
+Este error es común en Jetson cuando hay conflictos de versiones. Soluciones:
+
+#### Solución 1: Usar script de corrección automática
+
+```bash
+bash scripts/fix_opencv_dependencies.sh
+```
+
+#### Solución 2: Instalación manual paso a paso
+
+```bash
+# 1. Corregir dependencias rotas
+sudo apt-get install -f -y
+
+# 2. Actualizar lista de paquetes
+sudo apt update
+
+# 3. Instalar solo versión base (más seguro)
+sudo apt install -y libopencv-dev python3-opencv
+
+# 4. Verificar versión instalada
+apt-cache policy libopencv-dev | grep Installed
+
+# 5. Si necesitas contrib, instalar con versión específica
+# Reemplaza VERSION con la versión obtenida en el paso 4
+sudo apt install -y libopencv-contrib-dev=VERSION
+```
+
+#### Solución 3: Instalar solo lo esencial (sin contrib)
+
+Si `libopencv-contrib-dev` no es estrictamente necesario:
+
+```bash
+sudo apt install -y libopencv-dev python3-opencv
+```
+
+Luego verifica que OpenCV funciona:
+
+```bash
+pkg-config --modversion opencv4
+# o
+pkg-config --modversion opencv
+```
+
+#### Solución 4: En Jetson - Verificar instalación de JetPack
+
+Los Jetson suelen tener OpenCV preinstalado con JetPack:
+
+```bash
+# Verificar si OpenCV ya está instalado
+pkg-config --modversion opencv4
+
+# Si está instalado, puede que no necesites instalar nada más
+```
+
 ### Error: OpenCV no encontrado
 
 ```bash
-sudo apt install libopencv-dev libopencv-contrib-dev
+sudo apt install libopencv-dev
+# Si contrib no es necesario, evita libopencv-contrib-dev
 ```
 
 ### Error: Tesseract no encontrado
