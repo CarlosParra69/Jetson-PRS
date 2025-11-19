@@ -1,6 +1,7 @@
 #include "video_capture.h"
 #include <iostream>
 #include <chrono>
+#include <thread>
 #include <stdexcept>
 
 namespace jetson_lpr {
@@ -28,29 +29,97 @@ bool VideoCapture::start() {
     
     std::lock_guard<std::mutex> lock(cap_mutex_);
     
-    // Configurar OpenCV para RTSP
-    cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);  // Buffer mínimo para reducir latencia
+    std::cout << "🔍 Intentando conectar a: " << rtsp_url_ << std::endl;
     
-    // Abrir captura RTSP
+    // Intentar múltiples métodos de conexión RTSP
+    bool opened = false;
+    
+    // Método 1: Intentar con CAP_FFMPEG explícitamente
+    std::cout << "📡 Método 1: Intentando con CAP_FFMPEG..." << std::endl;
     cap_.open(rtsp_url_, cv::CAP_FFMPEG);
     
-    if (!cap_.isOpened()) {
-        std::cerr << "Error: No se pudo abrir la cámara RTSP: " << rtsp_url_ << std::endl;
+    if (cap_.isOpened()) {
+        opened = true;
+        std::cout << "✅ Conexión exitosa con CAP_FFMPEG" << std::endl;
+    } else {
+        // Método 2: Intentar sin especificar backend (auto-detección)
+        std::cout << "📡 Método 2: Intentando auto-detección de backend..." << std::endl;
+        cap_.release();
+        cap_.open(rtsp_url_);
+        
+        if (cap_.isOpened()) {
+            opened = true;
+            std::cout << "✅ Conexión exitosa con auto-detección" << std::endl;
+        } else {
+            // Método 3: Intentar con GStreamer si está disponible
+            std::cout << "📡 Método 3: Intentando con GStreamer..." << std::endl;
+            cap_.release();
+            std::string gstreamer_pipeline = "rtspsrc location=" + rtsp_url_ + 
+                " latency=0 ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! appsink";
+            cap_.open(gstreamer_pipeline, cv::CAP_GSTREAMER);
+            
+            if (cap_.isOpened()) {
+                opened = true;
+                std::cout << "✅ Conexión exitosa con GStreamer" << std::endl;
+            }
+        }
+    }
+    
+    if (!opened) {
+        std::cerr << "❌ Error: No se pudo abrir la cámara RTSP: " << rtsp_url_ << std::endl;
+        std::cerr << "💡 Verificaciones:" << std::endl;
+        std::cerr << "   1. Verifica que la URL RTSP es correcta" << std::endl;
+        std::cerr << "   2. Verifica que la cámara está encendida y accesible en la red" << std::endl;
+        std::cerr << "   3. Prueba la conexión con: ffmpeg -i \"" << rtsp_url_ << "\" -t 5 -f null -" << std::endl;
+        std::cerr << "   4. Verifica credenciales (usuario/contraseña) en la URL" << std::endl;
         return false;
     }
     
-    // Configurar FPS objetivo (si es posible)
-    cap_.set(cv::CAP_PROP_FPS, 25.0);
+    // Configurar propiedades de captura
+    cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);  // Buffer mínimo para reducir latencia
+    cap_.set(cv::CAP_PROP_FPS, 25.0);     // FPS objetivo
     
-    // Verificar que la captura funcione
+    // Configurar timeout para RTSP (importante para conexiones lentas)
+    // Nota: OpenCV puede no soportar todas estas propiedades dependiendo del backend
+    try {
+        cap_.set(cv::CAP_PROP_OPEN_TIMEOUT_MSEC, 10000);  // 10 segundos timeout
+    } catch (...) {
+        // Ignorar si no está soportado
+    }
+    
+    // Esperar un momento para que la conexión se estabilice
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    
+    // Verificar que la captura funcione leyendo un frame de prueba
+    std::cout << "🔍 Verificando lectura de frames..." << std::endl;
     cv::Mat test_frame;
-    if (!cap_.read(test_frame)) {
-        std::cerr << "Error: No se pudo leer frames de la cámara" << std::endl;
+    int attempts = 0;
+    const int max_attempts = 10;
+    
+    while (attempts < max_attempts && !cap_.read(test_frame)) {
+        attempts++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        if (attempts % 3 == 0) {
+            std::cout << "   Intento " << attempts << "/" << max_attempts << "..." << std::endl;
+        }
+    }
+    
+    if (test_frame.empty()) {
+        std::cerr << "❌ Error: No se pudo leer frames de la cámara después de " << max_attempts << " intentos" << std::endl;
+        std::cerr << "💡 La conexión se estableció pero no se pueden leer frames" << std::endl;
         cap_.release();
         return false;
     }
     
-    std::cout << "✅ Cámara RTSP conectada: " << rtsp_url_ << std::endl;
+    // Obtener información de la cámara
+    int width = static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_WIDTH));
+    int height = static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_HEIGHT));
+    double fps = cap_.get(cv::CAP_PROP_FPS);
+    
+    std::cout << "✅ Cámara RTSP conectada exitosamente!" << std::endl;
+    std::cout << "   Resolución: " << width << "x" << height << std::endl;
+    std::cout << "   FPS: " << fps << std::endl;
+    std::cout << "   URL: " << rtsp_url_ << std::endl;
     
     // Iniciar hilo de captura
     running_ = true;

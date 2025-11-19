@@ -347,6 +347,76 @@ make -j4
 - En Jetson, verifica con `nvidia-smi`
 - En otros sistemas, compila sin CUDA: `cmake .. -DUSE_CUDA=OFF`
 
+### Error: No se puede conectar a la cámara RTSP
+
+Este es uno de los errores más comunes. Sigue estos pasos:
+
+#### 1. Probar la conexión RTSP manualmente
+
+```bash
+# Usar el script de prueba
+chmod +x scripts/test_rtsp.sh
+bash scripts/test_rtsp.sh
+
+# O probar con ffmpeg directamente (reemplaza con tu URL)
+ffmpeg -i "rtsp://admin:admin@192.168.1.101/cam/realmonitor?channel=1&subtype=1" -t 5 -f null -
+```
+
+#### 2. Verificar la URL RTSP
+
+La URL RTSP debe tener el formato:
+```
+rtsp://usuario:contraseña@IP:puerto/ruta
+```
+
+Ejemplos comunes:
+- **Hikvision**: `rtsp://admin:password@192.168.1.101/Streaming/Channels/101`
+- **Dahua**: `rtsp://admin:password@192.168.1.101/cam/realmonitor?channel=1&subtype=0`
+- **Generic**: `rtsp://admin:password@192.168.1.101:554/stream1`
+
+#### 3. Verificar conectividad de red
+
+```bash
+# Ping a la cámara (reemplaza con la IP de tu cámara)
+ping 192.168.1.101
+
+# Verificar puerto RTSP (554 por defecto)
+nc -zv 192.168.1.101 554
+```
+
+#### 4. Verificar credenciales
+
+Prueba acceder a la interfaz web de la cámara:
+```bash
+# Abrir en navegador (reemplaza con la IP de tu cámara)
+# http://192.168.1.101
+```
+
+#### 5. Soluciones comunes
+
+**Problema: "backend is generally available but can't be used"**
+- Instalar ffmpeg: `sudo apt install ffmpeg`
+- El código mejorado ahora intenta múltiples métodos de conexión automáticamente
+
+**Problema: Timeout al conectar**
+- El código mejorado ahora tiene timeout de 10 segundos y reintentos
+- Verificar firewall: `sudo ufw allow 554/udp`
+
+**Problema: Cámara en red diferente**
+- Verificar que el Jetson y la cámara están en la misma red
+- Verificar configuración de red: `ip addr show`
+
+#### 6. Usar cámara USB como alternativa
+
+Si tienes problemas con RTSP, puedes usar una cámara USB:
+
+1. Edita `config/default_config.json`
+2. Cambia `rtsp_url` a un número de dispositivo:
+   ```json
+   "rtsp_url": "0"  // Para /dev/video0
+   ```
+3. El código detectará automáticamente que es un dispositivo USB
+
 ## Próximos Pasos
 
 1. ✅ Convertir modelo YOLO a ONNX
