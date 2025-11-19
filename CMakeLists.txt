@@ -64,8 +64,40 @@ if(USE_CUDA)
     find_package(CUDA QUIET)
     if(CUDA_FOUND)
         message(STATUS "CUDA encontrado: ${CUDA_VERSION}")
-        enable_language(CUDA)
-        set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-std=c++17)
+        
+        # Buscar el compilador nvcc en ubicaciones comunes de Jetson
+        find_program(CUDA_NVCC_EXECUTABLE
+            NAMES nvcc
+            PATHS
+            ${CUDA_TOOLKIT_ROOT_DIR}/bin
+            /usr/local/cuda/bin
+            /usr/bin
+            ENV PATH
+            NO_DEFAULT_PATH
+        )
+        
+        # Si no se encuentra en ubicaciones específicas, buscar en PATH
+        if(NOT CUDA_NVCC_EXECUTABLE)
+            find_program(CUDA_NVCC_EXECUTABLE NAMES nvcc)
+        endif()
+        
+        if(CUDA_NVCC_EXECUTABLE)
+            message(STATUS "Compilador CUDA encontrado: ${CUDA_NVCC_EXECUTABLE}")
+            # Configurar CMAKE_CUDA_COMPILER antes de enable_language
+            set(CMAKE_CUDA_COMPILER ${CUDA_NVCC_EXECUTABLE})
+            enable_language(CUDA)
+            set(CMAKE_CUDA_STANDARD 17)
+            set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        else()
+            message(WARNING "CUDA encontrado pero nvcc no está disponible. Desactivando CUDA.")
+            message(WARNING "Para habilitar CUDA, asegúrate de que nvcc esté en el PATH:")
+            message(WARNING "  export PATH=/usr/local/cuda/bin:$PATH")
+            set(USE_CUDA OFF)
+            set(CUDA_FOUND FALSE)
+        endif()
+    else()
+        message(STATUS "CUDA no encontrado - compilando sin soporte CUDA")
+        set(USE_CUDA OFF)
     endif()
 endif()
 
@@ -163,7 +195,11 @@ target_compile_options(jetson_lpr PRIVATE
 # Mensajes informativos
 message(STATUS "=== Configuración Jetson LPR ===")
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-message(STATUS "CUDA: ${CUDA_FOUND}")
+if(USE_CUDA AND CUDA_FOUND)
+    message(STATUS "CUDA: ${CUDA_VERSION} (${CUDA_NVCC_EXECUTABLE})")
+else()
+    message(STATUS "CUDA: Desactivado")
+endif()
 message(STATUS "TensorRT: ${USE_TENSORRT}")
 message(STATUS "ONNX Runtime: ${USE_ONNXRUNTIME}")
 message(STATUS "Tesseract: ${TESSERACT_VERSION}")

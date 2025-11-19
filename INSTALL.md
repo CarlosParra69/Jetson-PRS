@@ -296,10 +296,56 @@ sudo apt install libmysqlclient-dev
 - Verifica que el modelo ONNX esté en `models/license_plate_detector.onnx`
 - O actualiza la ruta en `src/lpr_system.cpp` línea ~63
 
+### Error: No CMAKE_CUDA_COMPILER could be found
+
+Este error ocurre cuando CUDA está instalado pero el compilador `nvcc` no está en el PATH.
+
+#### Solución 1: Agregar nvcc al PATH (recomendado para Jetson)
+
+```bash
+# Agregar CUDA al PATH (temporal para esta sesión)
+export PATH=/usr/local/cuda/bin:$PATH
+
+# O agregar permanentemente a ~/.bashrc
+echo 'export PATH=/usr/local/cuda/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# Verificar que nvcc está disponible
+which nvcc
+nvcc --version
+```
+
+Luego ejecuta cmake nuevamente:
+
+```bash
+cd build
+cmake ..
+```
+
+#### Solución 2: Compilar sin CUDA (si no lo necesitas)
+
+Si no necesitas aceleración CUDA, puedes compilar sin ella:
+
+```bash
+cd build
+rm -rf *  # Limpiar configuración anterior
+cmake .. -DUSE_CUDA=OFF
+make -j4
+```
+
+#### Solución 3: Especificar ruta del compilador manualmente
+
+```bash
+cd build
+rm -rf *
+cmake .. -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc
+make -j4
+```
+
 ### Error: CUDA no disponible
 
 - En Jetson, verifica con `nvidia-smi`
-- En otros sistemas, compila sin CUDA: `cmake ..`
+- En otros sistemas, compila sin CUDA: `cmake .. -DUSE_CUDA=OFF`
 
 ## Próximos Pasos
 
