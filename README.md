@@ -100,19 +100,37 @@ Edita el archivo `config/default\_config.json` o crea uno nuevo:
 
 ### Ejecución Básica
 
+**Opción 1: Desde el directorio raíz del proyecto (recomendado)**
+
 ```bash
-./jetson\_lpr --config config/default\_config.json
+cd ~/Desktop/Jetson-PRS
+./build/bin/jetson_lpr --config config/default_config.json
+```
+
+**Opción 2: Usando el script de ejecución**
+
+```bash
+cd ~/Desktop/Jetson-PRS
+chmod +x scripts/run_lpr.sh
+bash scripts/run_lpr.sh
+```
+
+**Opción 3: Desde el directorio build**
+
+```bash
+cd ~/Desktop/Jetson-PRS/build
+./bin/jetson_lpr --config ../config/default_config.json
 ```
 
 ### Opciones de Línea de Comandos
 
 ```bash
-./jetson\_lpr \[OPCIONES]
+./jetson_lpr [OPCIONES]
 
 OPCIONES:
   -h, --help                  Mostrar ayuda
-  --config CONFIG             Archivo de configuración (default: config/default\_config.json)
-  --ai-every AI\_EVERY         Procesar IA cada N frames (default: 2)
+  --config CONFIG             Archivo de configuración (default: config/default_config.json)
+  --ai-every AI_EVERY         Procesar IA cada N frames (default: 2)
   --cooldown COOLDOWN         Cooldown en segundos (default: 0.5)
   --confidence CONFIDENCE     Umbral confianza detección (default: 0.30)
   --headless                  Modo sin GUI (recomendado para Jetson)
@@ -121,13 +139,55 @@ OPCIONES:
 ### Ejemplo de Uso
 
 ```bash
-./jetson\_lpr \\
-    --config config/default\_config.json \\
-    --ai-every 2 \\
-    --cooldown 0.5 \\
-    --confidence 0.30 \\
+cd ~/Desktop/Jetson-PRS
+./build/bin/jetson_lpr \
+    --config config/default_config.json \
+    --ai-every 2 \
+    --cooldown 0.5 \
+    --confidence 0.30 \
     --headless
 ```
+
+### Verificar que el programa funciona
+
+Antes de ejecutar, verifica:
+
+1. **El ejecutable existe:**
+   ```bash
+   ls -lh build/bin/jetson_lpr
+   ```
+
+2. **El archivo de configuración existe:**
+   ```bash
+   ls -lh config/default_config.json
+   ```
+
+3. **El modelo ONNX existe:**
+   ```bash
+   ls -lh models/license_plate_detector.onnx
+   ```
+
+4. **MySQL está corriendo:**
+   ```bash
+   sudo systemctl status mysql
+   ```
+
+### Solución de Problemas al Ejecutar
+
+**Error: "No such file or directory"**
+- Verifica que estás en el directorio correcto
+- Usa la ruta completa: `./build/bin/jetson_lpr`
+
+**Error: "Permission denied"**
+- Dale permisos de ejecución: `chmod +x build/bin/jetson_lpr`
+
+**Error: "No se pudo inicializar la captura de video"**
+- Verifica la URL RTSP en `config/default_config.json`
+- Prueba la conexión: `ffmpeg -i rtsp://... -t 5 -f null -`
+
+**Error: "No se pudo conectar a MySQL"**
+- Verifica que MySQL está corriendo: `sudo systemctl start mysql`
+- Verifica las credenciales en `config/default_config.json`
 
 ## 📊 Estructura del Proyecto
 

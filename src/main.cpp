@@ -46,10 +46,12 @@ int main(int argc, char* argv[]) {
     
     // Parsear argumentos de línea de comandos
     std::string config_path = "config/default_config.json";
-    int ai_every = 2;
-    double cooldown = 0.5;
-    double confidence = 0.30;
-    bool headless = false;
+    // Nota: Estas variables se parsean pero aún no se usan (requieren métodos adicionales en ConfigManager)
+    // Se mantienen para compatibilidad futura con argumentos de línea de comandos
+    [[maybe_unused]] int ai_every = 2;
+    [[maybe_unused]] double cooldown = 0.5;
+    [[maybe_unused]] double confidence = 0.30;
+    [[maybe_unused]] bool headless = false;
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];

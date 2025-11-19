@@ -207,8 +207,6 @@ void LPRSystem::processingThread() {
         // Procesar cada N frames (optimización)
         frame_skip_counter++;
         if (frame_skip_counter % ai_every == 0) {
-            auto start_time = std::chrono::steady_clock::now();
-            
             // Procesar frame
             std::vector<DetectionResult> results = processFrame(frame);
             

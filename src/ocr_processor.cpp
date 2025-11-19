@@ -234,7 +234,6 @@ OCRResult OCRProcessor::recognizeInternal(const cv::Mat& processed_image) {
         // Obtener texto y confianza
         char* text = tesseract_api_->GetUTF8Text();
         int* confidences = tesseract_api_->AllWordConfidences();
-        int conf_count = 0;
         
         std::string result_text = text ? std::string(text) : "";
         
