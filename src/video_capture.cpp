@@ -77,18 +77,12 @@ bool VideoCapture::start() {
     
     // Configurar propiedades de captura
     cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);  // Buffer mínimo para reducir latencia
-    cap_.set(cv::CAP_PROP_FPS, 30.0);     // FPS objetivo (aumentar si es posible)
     
-    // Intentar reducir resolución si es muy alta (optimización)
-    int current_width = static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_WIDTH));
-    int current_height = static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_HEIGHT));
+    // No forzar FPS - dejar que la cámara use su FPS nativo
+    // cap_.set(cv::CAP_PROP_FPS, 30.0);  // Comentado - puede causar problemas
     
-    // Si la resolución es muy alta, intentar reducirla
-    if (current_width > 1920 || current_height > 1080) {
-        std::cout << "   Reduciendo resolución para mejor rendimiento..." << std::endl;
-        cap_.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
-        cap_.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
-    }
+    // NO reducir resolución automáticamente - puede romper la conexión RTSP
+    // La resolución se manejará en el procesamiento si es necesario
     
     // Configurar timeout para RTSP (importante para conexiones lentas)
     // Nota: OpenCV puede no soportar todas estas propiedades dependiendo del backend
@@ -245,11 +239,11 @@ void VideoCapture::captureWorker() {
                 frame_queue_.pop();
             }
             
-            // Solo clonar si hay espacio (optimización)
             frame_queue_.push(frame.clone());
         }
         
-        // Sin pausa para máxima velocidad de captura
+        // Pequeña pausa para no saturar CPU y permitir que la cámara capture
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     
     std::cout << "📹 Hilo de captura terminado" << std::endl;

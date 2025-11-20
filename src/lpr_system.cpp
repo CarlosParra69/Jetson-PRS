@@ -189,7 +189,8 @@ void LPRSystem::captureThread() {
             frame_queue_.push(frame.clone());
         }
         
-        // Sin pausa para máxima velocidad
+        // Pequeña pausa para no saturar CPU
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     
     std::cout << "📹 Hilo de captura terminado" << std::endl;
@@ -219,11 +220,12 @@ void LPRSystem::processingThread() {
         // Procesar cada N frames (optimización)
         frame_skip_counter++;
         if (frame_skip_counter % ai_every == 0) {
-            // Reducir resolución para procesamiento más rápido
+            // Reducir resolución para procesamiento más rápido (solo si es muy grande)
             cv::Mat processing_frame = frame;
-            int processing_resolution = config_.getInt("realtime_optimization.processing_resolution", 640);
+            int processing_resolution = config_.getInt("realtime_optimization.processing_resolution", 800);
             
-            if (frame.cols > processing_resolution) {
+            // Solo redimensionar si la imagen es significativamente más grande
+            if (frame.cols > processing_resolution * 1.2) {
                 double scale = static_cast<double>(processing_resolution) / frame.cols;
                 cv::resize(frame, processing_frame, cv::Size(), scale, scale, cv::INTER_LINEAR);
             }
