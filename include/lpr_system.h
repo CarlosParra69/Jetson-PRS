@@ -141,6 +141,11 @@ private:
     // Tiempo de inicio
     std::chrono::steady_clock::time_point start_time_;
     
+    // Visualización
+    bool display_enabled_;
+    double display_scale_;
+    std::string window_name_;
+    
     /**
      * Hilo de captura de frames
      */
@@ -178,6 +183,14 @@ private:
      * Actualizar estadísticas
      */
     void updateStats();
+    
+    /**
+     * Mostrar frame en ventana (si está habilitado)
+     * 
+     * @param frame Frame a mostrar
+     * @param results Resultados de detección para dibujar
+     */
+    void displayFrame(const cv::Mat& frame, const std::vector<DetectionResult>& results);
 };
 
 } // namespace jetson_lpr

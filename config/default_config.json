@@ -25,8 +25,8 @@
     "realtime_optimization": {
         "ai_process_every": 2,
         "motion_activation": true,
-        "display_scale": 0.25,
-        "headless_mode": true
+        "display_scale": 0.5,
+        "headless_mode": false
     }
 }
 

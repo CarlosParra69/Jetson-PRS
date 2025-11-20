@@ -16,9 +16,16 @@ LPRSystem::LPRSystem(const std::string& config_path)
     , frame_counter_(0)
     , ai_frame_counter_(0)
     , detection_counter_(0)
+    , display_enabled_(true)
+    , display_scale_(0.5)
+    , window_name_("Sistema LPR - Reconocimiento de Placas")
 {
     // Cargar configuración
     config_.loadFromFile(config_path);
+    
+    // Leer configuración de visualización
+    display_enabled_ = !config_.getBool("realtime_optimization.headless_mode", false);
+    display_scale_ = config_.getDouble("realtime_optimization.display_scale", 0.5);
     
     // Inicializar estadísticas
     stats_ = Stats{};
@@ -26,6 +33,11 @@ LPRSystem::LPRSystem(const std::string& config_path)
 
 LPRSystem::~LPRSystem() {
     stop();
+    
+    // Cerrar ventana de visualización si está abierta
+    if (display_enabled_) {
+        cv::destroyWindow(window_name_);
+    }
 }
 
 bool LPRSystem::initialize() {
@@ -226,8 +238,18 @@ void LPRSystem::processingThread() {
                 }
             }
             
+            // Mostrar frame en ventana (si está habilitado)
+            if (display_enabled_) {
+                displayFrame(frame, results);
+            }
+            
             // Actualizar estadísticas
             updateStats();
+        } else {
+            // Mostrar frame incluso si no se procesa con IA (para visualización fluida)
+            if (display_enabled_) {
+                displayFrame(frame, {});
+            }
         }
         
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -382,6 +404,109 @@ void LPRSystem::updateStats() {
     stats_.detections_count = detection_counter_;
     stats_.capture_fps = frame_counter_ / elapsed;
     stats_.ai_fps = ai_frame_counter_ / elapsed;
+}
+
+void LPRSystem::displayFrame(const cv::Mat& frame, const std::vector<DetectionResult>& results) {
+    if (frame.empty()) {
+        return;
+    }
+    
+    // Crear copia del frame para dibujar
+    cv::Mat display_frame = frame.clone();
+    
+    // Redimensionar si es necesario
+    if (display_scale_ != 1.0 && display_scale_ > 0) {
+        cv::resize(display_frame, display_frame, 
+                  cv::Size(static_cast<int>(frame.cols * display_scale_),
+                          static_cast<int>(frame.rows * display_scale_)),
+                  0, 0, cv::INTER_LINEAR);
+    }
+    
+    // Dibujar detecciones
+    for (const auto& result : results) {
+        if (!result.valid) {
+            continue;
+        }
+        
+        // Escalar bbox si la imagen fue redimensionada
+        cv::Rect bbox = result.plate_bbox;
+        if (display_scale_ != 1.0 && display_scale_ > 0) {
+            bbox.x = static_cast<int>(bbox.x * display_scale_);
+            bbox.y = static_cast<int>(bbox.y * display_scale_);
+            bbox.width = static_cast<int>(bbox.width * display_scale_);
+            bbox.height = static_cast<int>(bbox.height * display_scale_);
+        }
+        
+        // Asegurar que el bbox está dentro de los límites
+        bbox.x = std::max(0, std::min(bbox.x, display_frame.cols - 1));
+        bbox.y = std::max(0, std::min(bbox.y, display_frame.rows - 1));
+        bbox.width = std::min(bbox.width, display_frame.cols - bbox.x);
+        bbox.height = std::min(bbox.height, display_frame.rows - bbox.y);
+        
+        if (bbox.width <= 0 || bbox.height <= 0) {
+            continue;
+        }
+        
+        // Color según si está autorizada
+        cv::Scalar color = result.authorized ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+        
+        // Dibujar rectángulo
+        cv::rectangle(display_frame, bbox, color, 2);
+        
+        // Preparar texto a mostrar
+        std::ostringstream label;
+        label << result.plate_text;
+        if (result.authorized) {
+            label << " [AUTORIZADO]";
+        }
+        label << " (" << std::fixed << std::setprecision(2) 
+              << result.yolo_confidence * 100 << "%)";
+        
+        // Calcular posición del texto
+        int baseline = 0;
+        cv::Size text_size = cv::getTextSize(label.str(), cv::FONT_HERSHEY_SIMPLEX, 
+                                            0.6, 2, &baseline);
+        
+        cv::Point text_pos(bbox.x, bbox.y - 10);
+        if (text_pos.y < text_size.height) {
+            text_pos.y = bbox.y + bbox.height + text_size.height + 5;
+        }
+        
+        // Dibujar fondo para el texto
+        cv::rectangle(display_frame,
+                     cv::Point(text_pos.x, text_pos.y - text_size.height - 5),
+                     cv::Point(text_pos.x + text_size.width, text_pos.y + baseline),
+                     color, -1);
+        
+        // Dibujar texto
+        cv::putText(display_frame, label.str(), text_pos,
+                   cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 2);
+    }
+    
+    // Agregar información de estadísticas
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    std::ostringstream stats_text;
+    stats_text << "FPS: " << std::fixed << std::setprecision(1) << stats_.capture_fps
+               << " | Detecciones: " << stats_.detections_count
+               << " | Frames IA: " << stats_.ai_frames;
+    
+    // Dibujar fondo para estadísticas
+    cv::Size stats_size = cv::getTextSize(stats_text.str(), cv::FONT_HERSHEY_SIMPLEX, 
+                                         0.5, 1, nullptr);
+    cv::rectangle(display_frame,
+                 cv::Point(10, 10),
+                 cv::Point(20 + stats_size.width, 30 + stats_size.height),
+                 cv::Scalar(0, 0, 0), -1);
+    
+    // Dibujar estadísticas
+    cv::putText(display_frame, stats_text.str(), cv::Point(15, 25),
+               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255), 1);
+    
+    // Mostrar frame
+    cv::imshow(window_name_, display_frame);
+    
+    // Esperar 1ms para que la ventana se actualice (no bloquea)
+    cv::waitKey(1);
 }
 
 } // namespace jetson_lpr
