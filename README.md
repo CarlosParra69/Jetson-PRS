@@ -66,6 +66,11 @@ El ejecutable se generará en `build/bin/jetson\_lpr`
 
 ## 📝 Configuración
 
+### Configuración de Cámaras
+
+El proyecto soporta múltiples configuraciones de cámaras. Ver `README_CAMERAS.md` para detalles.
+
+**Configuración por defecto** (cámara nueva):
 Edita el archivo `config/default\_config.json` o crea uno nuevo:
 
 ```json
