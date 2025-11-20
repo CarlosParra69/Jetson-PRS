@@ -5,7 +5,7 @@
 set -e
 
 # URL RTSP por defecto (desde config)
-RTSP_URL="${1:-rtsp://admin:admin@192.168.1.101/cam/realmonitor?channel=1&subtype=1}"
+RTSP_URL="${1:-rtsp://192.168.0.100:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream}"
 
 echo "🔍 Probando conexión RTSP"
 echo "=========================="

@@ -1,0 +1,32 @@
+{
+    "camera": {
+        "ip": "192.168.0.100",
+        "user": "admin",
+        "password": "tlJwpbo6",
+        "rtsp_url": "rtsp://192.168.0.100:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream"
+    },
+    "jetson": {
+        "ip": "192.168.1.100",
+        "interface": "enP8p1s0"
+    },
+    "processing": {
+        "confidence_threshold": 0.30,
+        "plate_confidence_min": 0.25,
+        "detection_cooldown_sec": 0.5,
+        "ocr_cache_enabled": true
+    },
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "database": "parqueadero_jetson",
+        "user": "lpr_user",
+        "password": "lpr_password"
+    },
+    "realtime_optimization": {
+        "ai_process_every": 2,
+        "motion_activation": true,
+        "display_scale": 0.25,
+        "headless_mode": true
+    }
+}
+
