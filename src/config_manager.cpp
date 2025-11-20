@@ -15,11 +15,11 @@ struct JsonHolder {
 
 ConfigManager::CameraConfig ConfigManager::getCameraConfig() const {
     CameraConfig config;
-    config.ip = getString("camera.ip", "192.168.0.100");
+    config.ip = getString("camera.ip", "192.168.1.101");
     config.user = getString("camera.user", "admin");
-    config.password = getString("camera.password", "tlJwpbo6");
+    config.password = getString("camera.password", "admin");
     config.rtsp_url = getString("camera.rtsp_url", 
-        "rtsp://192.168.0.100:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream");
+        "rtsp://admin:admin@192.168.1.101/cam/realmonitor?channel=1&subtype=1");
     return config;
 }
 
@@ -83,10 +83,10 @@ void ConfigManager::createDefaultConfig() {
     // Configuración por defecto
     json_data_->data = nlohmann::json::object({
         {"camera", {
-            {"ip", "192.168.0.100"},
+            {"ip", "192.168.1.101"},
             {"user", "admin"},
-            {"password", "tlJwpbo6"},
-            {"rtsp_url", "rtsp://192.168.0.100:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream"}
+            {"password", "admin"},
+            {"rtsp_url", "rtsp://admin:admin@192.168.1.101/cam/realmonitor?channel=1&subtype=1"}
         }},
         {"jetson", {
             {"ip", "192.168.1.100"},

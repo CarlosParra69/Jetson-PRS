@@ -4,7 +4,7 @@
 
 set -e
 
-CAMERA_IP="${1:-192.168.0.100}"
+CAMERA_IP="${1:-192.168.1.101}"
 
 echo "🔍 Verificando conectividad de red"
 echo "==================================="

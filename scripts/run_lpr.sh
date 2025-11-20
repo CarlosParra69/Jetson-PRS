@@ -11,6 +11,13 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Cambiar al directorio raíz del proyecto
 cd "$PROJECT_ROOT"
 
+# Configurar red antes de ejecutar (si el script existe)
+if [ -f "$SCRIPT_DIR/setup_network.sh" ]; then
+    echo "🌐 Configurando red..."
+    bash "$SCRIPT_DIR/setup_network.sh"
+    echo ""
+fi
+
 # Verificar que el ejecutable existe
 EXECUTABLE="build/bin/jetson_lpr"
 if [ ! -f "$EXECUTABLE" ]; then

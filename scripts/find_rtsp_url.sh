@@ -4,7 +4,7 @@
 
 set -e
 
-CAMERA_IP="${1:-192.168.0.100}"
+CAMERA_IP="${1:-192.168.1.101}"
 CAMERA_USER="${2:-admin}"
 CAMERA_PASSWORD="${3:-admin}"
 
