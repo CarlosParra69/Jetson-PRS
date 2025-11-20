@@ -186,11 +186,13 @@ cv::Mat OCRProcessor::preprocessPlateImage(const cv::Mat& image) {
     }
     
     // Aplicar filtro bilateral para reducir ruido
-    cv::bilateralFilter(processed, processed, 5, 30, 30);
+    // Nota: bilateralFilter requiere que src y dst sean diferentes
+    cv::Mat filtered;
+    cv::bilateralFilter(processed, filtered, 5, 30, 30);
     
     // Aplicar umbral adaptativo
     cv::Mat binary;
-    cv::adaptiveThreshold(processed, binary, 255, 
+    cv::adaptiveThreshold(filtered, binary, 255, 
                          cv::ADAPTIVE_THRESH_GAUSSIAN_C, 
                          cv::THRESH_BINARY, 11, 2);
     
