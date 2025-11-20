@@ -23,10 +23,11 @@
         "password": "lpr_password"
     },
     "realtime_optimization": {
-        "ai_process_every": 2,
+        "ai_process_every": 5,
         "motion_activation": true,
-        "display_scale": 0.5,
-        "headless_mode": false
+        "display_scale": 0.3,
+        "headless_mode": false,
+        "processing_resolution": 640
     }
 }
 

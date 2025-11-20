@@ -11,13 +11,13 @@ LPRSystem::LPRSystem(const std::string& config_path)
     : config_()
     , running_(false)
     , initialized_(false)
-    , max_queue_size_(5)
+    , max_queue_size_(3)
     , cooldown_seconds_(0.5)
     , frame_counter_(0)
     , ai_frame_counter_(0)
     , detection_counter_(0)
     , display_enabled_(true)
-    , display_scale_(0.5)
+    , display_scale_(0.3)
     , window_name_("Sistema LPR - Reconocimiento de Placas")
 {
     // Cargar configuración
@@ -25,7 +25,7 @@ LPRSystem::LPRSystem(const std::string& config_path)
     
     // Leer configuración de visualización
     display_enabled_ = !config_.getBool("realtime_optimization.headless_mode", false);
-    display_scale_ = config_.getDouble("realtime_optimization.display_scale", 0.5);
+    display_scale_ = config_.getDouble("realtime_optimization.display_scale", 0.3);
     
     // Inicializar estadísticas
     stats_ = Stats{};
@@ -181,15 +181,15 @@ void LPRSystem::captureThread() {
         {
             std::lock_guard<std::mutex> lock(frame_queue_mutex_);
             
-            // Limitar tamaño de cola
-            while (frame_queue_.size() >= max_queue_size_) {
+            // Limitar tamaño de cola - descartar frames antiguos
+            if (frame_queue_.size() >= max_queue_size_) {
                 frame_queue_.pop();
             }
             
             frame_queue_.push(frame.clone());
         }
         
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        // Sin pausa para máxima velocidad
     }
     
     std::cout << "📹 Hilo de captura terminado" << std::endl;
@@ -219,8 +219,28 @@ void LPRSystem::processingThread() {
         // Procesar cada N frames (optimización)
         frame_skip_counter++;
         if (frame_skip_counter % ai_every == 0) {
+            // Reducir resolución para procesamiento más rápido
+            cv::Mat processing_frame = frame;
+            int processing_resolution = config_.getInt("realtime_optimization.processing_resolution", 640);
+            
+            if (frame.cols > processing_resolution) {
+                double scale = static_cast<double>(processing_resolution) / frame.cols;
+                cv::resize(frame, processing_frame, cv::Size(), scale, scale, cv::INTER_LINEAR);
+            }
+            
             // Procesar frame
-            std::vector<DetectionResult> results = processFrame(frame);
+            std::vector<DetectionResult> results = processFrame(processing_frame);
+            
+            // Escalar resultados de vuelta a la resolución original si fue redimensionado
+            if (processing_frame.cols != frame.cols) {
+                double scale = static_cast<double>(frame.cols) / processing_frame.cols;
+                for (auto& result : results) {
+                    result.plate_bbox.x = static_cast<int>(result.plate_bbox.x * scale);
+                    result.plate_bbox.y = static_cast<int>(result.plate_bbox.y * scale);
+                    result.plate_bbox.width = static_cast<int>(result.plate_bbox.width * scale);
+                    result.plate_bbox.height = static_cast<int>(result.plate_bbox.height * scale);
+                }
+            }
             
             ai_frame_counter_++;
             
@@ -233,7 +253,7 @@ void LPRSystem::processingThread() {
                               << " (YOLO: " << result.yolo_confidence 
                               << ", OCR: " << result.ocr_confidence << ")" << std::endl;
                     
-                    // Guardar en base de datos
+                    // Guardar en base de datos (asíncrono para no bloquear)
                     saveDetection(result);
                 }
             }
@@ -247,7 +267,8 @@ void LPRSystem::processingThread() {
             updateStats();
         } else {
             // Mostrar frame incluso si no se procesa con IA (para visualización fluida)
-            if (display_enabled_) {
+            // Pero solo cada 2 frames para no saturar
+            if (display_enabled_ && frame_skip_counter % 2 == 0) {
                 displayFrame(frame, {});
             }
         }
@@ -411,15 +432,17 @@ void LPRSystem::displayFrame(const cv::Mat& frame, const std::vector<DetectionRe
         return;
     }
     
-    // Crear copia del frame para dibujar
-    cv::Mat display_frame = frame.clone();
+    // Crear copia del frame para dibujar (solo si es necesario)
+    cv::Mat display_frame;
     
-    // Redimensionar si es necesario
+    // Si necesitamos redimensionar, hacerlo directamente sin clonar primero
     if (display_scale_ != 1.0 && display_scale_ > 0) {
-        cv::resize(display_frame, display_frame, 
+        cv::resize(frame, display_frame, 
                   cv::Size(static_cast<int>(frame.cols * display_scale_),
                           static_cast<int>(frame.rows * display_scale_)),
                   0, 0, cv::INTER_LINEAR);
+    } else {
+        display_frame = frame.clone();
     }
     
     // Dibujar detecciones
